@@ -13,6 +13,7 @@ import { Octagon } from "@/components/ui/Octagon";
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { ContactCurrentHumanToggle } from "./ContactCurrentHumanToggle";
+import { MiniMapBlock } from "./MiniMapBlock";
 
 /**
  * Hamster detail — Tesoro pattern: full-bleed coloured section that
@@ -280,6 +281,40 @@ export default async function HamsterDetailPage({
                 <p className="body-main whitespace-pre-wrap">
                   {hamster.includes}
                 </p>
+              </article>
+            </RevealUp>
+          ) : null}
+
+          {hamster.latitude !== null && hamster.longitude !== null ? (
+            <RevealUp delay={0.35} className="lg:col-span-3">
+              <article
+                className="flex flex-col gap-4 rounded-[1.75rem] p-7 sm:p-9"
+                style={{
+                  background:
+                    "color-mix(in srgb, currentColor 8%, transparent)",
+                }}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2
+                    className="text-xs font-bold uppercase tracking-[0.18em]"
+                    style={{ opacity: 0.65 }}
+                  >
+                    Where
+                  </h2>
+                  <p className="text-sm font-semibold">
+                    {hamster.location || "—"}
+                  </p>
+                </div>
+                <div
+                  className="overflow-hidden rounded-2xl"
+                  style={{ height: 280, background: "var(--cream)" }}
+                >
+                  <MiniMapBlock
+                    latitude={hamster.latitude}
+                    longitude={hamster.longitude}
+                    label={hamster.location || hamster.name}
+                  />
+                </div>
               </article>
             </RevealUp>
           ) : null}

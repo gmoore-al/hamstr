@@ -437,3 +437,120 @@ html.lenis body {
     transform: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────
+   MAP — Leaflet pin, cluster, and popup styles.
+   Leaflet ships its own default styles via the
+   imported CSS files; these overrides give the
+   pins/clusters/popups the Hamstr palette.
+   ───────────────────────────────────────────── */
+.hamstr-pin-wrap {
+  background: transparent;
+  border: 0;
+}
+.hamstr-pin {
+  width: 28px;
+  height: 36px;
+  background: var(--teal);
+  border: 3px solid var(--cream);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  box-shadow: 0 6px 12px -4px rgba(16, 52, 50, 0.45);
+  position: relative;
+  transform-origin: 50% 100%;
+}
+.hamstr-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 8px;
+  height: 8px;
+  background: var(--teal);
+  transform: translateX(-50%) rotate(45deg);
+  border-bottom-right-radius: 2px;
+}
+
+.hamstr-cluster {
+  background: transparent;
+  border: 0;
+}
+.hamstr-cluster-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--teal);
+  color: var(--cream);
+  font-family: var(--font-display), serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border: 3px solid var(--cream);
+  box-shadow: 0 6px 14px -4px rgba(16, 52, 50, 0.45);
+  clip-path: polygon(
+    29.29% 0%,
+    70.71% 0%,
+    100% 29.29%,
+    100% 70.71%,
+    70.71% 100%,
+    29.29% 100%,
+    0% 70.71%,
+    0% 29.29%
+  );
+}
+
+.leaflet-popup-content-wrapper.hamstr-popup,
+.hamstr-popup .leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  padding: 0;
+  background: var(--cream);
+  color: var(--ink);
+}
+.hamstr-popup .leaflet-popup-content {
+  margin: 0;
+  width: 220px !important;
+}
+.hamstr-popup-link {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.hamstr-popup-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--teal-base);
+}
+.hamstr-popup-photo--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+.hamstr-popup-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hamstr-popup-name {
+  font-family: var(--font-display), serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.hamstr-popup-meta {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.hamstr-popup-fee {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin: 4px 0 0;
+}

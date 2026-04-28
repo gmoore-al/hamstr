@@ -96,9 +96,9 @@ export function Header() {
         >
           {[
             { href: "/", label: "Browse" },
+            { href: "/map", label: "View Map" },
             { href: "/rehome", label: "Rehome" },
             { href: "/#how-it-works", label: "How it works" },
-            { href: "/#story", label: "Our story" },
           ].map((l) => (
             <span
               key={l.href + l.label}

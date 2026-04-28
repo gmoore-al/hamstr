@@ -1,179 +1,382 @@
-"""Seed the database with a handful of sample hamster listings.
+"""Seed the database with ~200 realistic hamster rehoming listings.
+
+Photos come from ``scripts/data/hamster_photos.json`` (populated by
+``fetch_commons_photos.py`` from Wikimedia Commons), so every image is a
+real, human-classified photo of a hamster — not a stock-photo handbag.
 
 Run from the API directory with the venv active::
 
     source .venv/bin/activate
-    python scripts/seed.py
+    python scripts/seed.py            # idempotent: only seeds an empty table
+    python scripts/seed.py --replace  # wipe + reseed (use for refreshing demos)
 """
 
 from __future__ import annotations
 
+import argparse
+import itertools
+import json
+import random
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from sqlalchemy import text  # noqa: E402
+
 from app.database import SessionLocal  # noqa: E402
 from app.models import Hamster  # noqa: E402
 
-SAMPLES: list[dict[str, object]] = [
-    {
-        "name": "Beatrice",
-        "species": "munchkin",
-        "age_months": 14,
-        "gender": "female",
-        "color": "Golden",
-        "temperament": "Curious, gentle, surprisingly opinionated about millet.",
-        "story": (
-            "Beatrice is the reason Hamstr exists. She arrived in our backyard in a "
-            "cardboard carrier with a note. She's the queen of slow blinks and likes "
-            "to be hand-fed sunflower seeds before her evening run. Looking for a "
-            "calm home with patient humans."
-        ),
-        "includes": "Bin cage (75L), 8\" silent wheel, hideout, food + bedding for a month.",
-        "adoption_fee_cents": 9500,
-        "location": "Ottawa, ON",
-        "photo_url": "/hamsters/beatrice.png",
-        "current_human_name": "Greg",
-        "current_human_email": "greg@example.com",
-    },
-    {
-        "name": "Mochi",
-        "species": "roborovski",
-        "age_months": 6,
-        "gender": "male",
-        "color": "Sandy with a white belly",
-        "temperament": "Zoomies. Constant zoomies.",
-        "story": (
-            "Mochi is a tiny brown blur. He's not a cuddler, but he's mesmerizing to "
-            "watch. Best for an experienced human who wants a hamster to admire from "
-            "just outside the glass."
-        ),
-        "includes": "20-gallon tank, 6\" wheel, sand bath, deep substrate.",
-        "adoption_fee_cents": 12500,
-        "location": "Toronto, ON",
-        "photo_url": "/hamsters/mochi.png",
-        "current_human_name": "Priya",
-        "current_human_email": "priya@example.com",
-    },
-    {
-        "name": "Pickle",
-        "species": "dwarf_winter_white",
-        "age_months": 9,
-        "gender": "female",
-        "color": "Pearl",
-        "temperament": "Shy at first, then a total snack thief.",
-        "story": (
-            "Pickle would rather you didn't make eye contact for the first week. After "
-            "that, she will absolutely climb into your sleeve to find pumpkin seeds. "
-            "Looking for a quiet home with someone who reads a lot."
-        ),
-        "includes": "Glass tank, mesh lid, wheel, all the bedding.",
-        "adoption_fee_cents": 6500,
-        "location": "Montreal, QC",
-        "photo_url": "/hamsters/pickle.png",
-        "current_human_name": "Jordan",
-        "current_human_email": "jordan@example.com",
-    },
-    {
-        "name": "Captain Whiskers",
-        "species": "munchkin",
-        "age_months": 4,
-        "gender": "male",
-        "color": "Banded black and white",
-        "temperament": "Bold, friendly, slightly dramatic.",
-        "story": (
-            "Captain has a flair for theater. He'll tip his food bowl if dinner is late. "
-            "Loves cardboard tubes more than any toy we've bought him. Great first "
-            "hamster for a kid who's done the reading."
-        ),
-        "includes": "Cage, wheel, six cardboard tubes (the good kind).",
-        "adoption_fee_cents": 17500,
-        "location": "Vancouver, BC",
-        "photo_url": "/hamsters/captain-whiskers.png",
-        "current_human_name": "Sam",
-        "current_human_email": "sam@example.com",
-    },
-    {
-        "name": "Tofu",
-        "species": "chinese",
-        "age_months": 11,
-        "gender": "male",
-        "color": "Brown with a dorsal stripe",
-        "temperament": "Climber. He'd live in the curtains if we let him.",
-        "story": (
-            "Tofu is athletic and tail-prehensile (yes, really). Needs vertical space "
-            "and lots of branches. We're moving overseas and can't take him with us."
-        ),
-        "includes": "Tall mesh enclosure, branches, hammock, food supply.",
-        "adoption_fee_cents": 8500,
-        "location": "Halifax, NS",
-        "photo_url": "/hamsters/tofu.png",
-        "current_human_name": "Morgan",
-        "current_human_email": "morgan@example.com",
-    },
-    {
-        "name": "Pip",
-        "species": "dwarf_campbell",
-        "age_months": 7,
-        "gender": "female",
-        "color": "Argente",
-        "temperament": "Cuddly once she trusts you. Trust takes about a week.",
-        "story": (
-            "Pip is a little softie. She fell asleep in my hoodie pocket twice this "
-            "month. Rehoming because of a new family allergy."
-        ),
-        "includes": "Bin cage, wheel, two hideouts, bedding.",
-        "adoption_fee_cents": 2500,
-        "location": "Calgary, AB",
-        "photo_url": "/hamsters/pip.png",
-        "current_human_name": "Alex",
-        "current_human_email": "alex@example.com",
-    },
-]
+PHOTOS_PATH = Path(__file__).resolve().parent / "data" / "hamster_photos.json"
+CITIES_PATH = Path(__file__).resolve().parent / "data" / "cities.json"
+
+NAMES: tuple[str, ...] = (
+    "Beatrice", "Mochi", "Pickle", "Captain Whiskers", "Tofu", "Pip",
+    "Hazel", "Bean", "Biscuit", "Clover", "Dottie", "Echo", "Ferris",
+    "Gilbert", "Honey", "Iggy", "Juno", "Kiwi", "Loki", "Marzipan",
+    "Nibbles", "Oats", "Peanut", "Quill", "Ramen", "Sprout", "Tater",
+    "Ursula", "Velvet", "Waffles", "Xander", "Yara", "Ziggy", "Acorn",
+    "Bubbles", "Cinnamon", "Dumpling", "Espresso", "Fudge", "Ginger",
+    "Hercules", "Inkwell", "Juniper", "Klondike", "Lentil", "Maple",
+    "Noodle", "Ollie", "Poppy", "Quesadilla", "Radish", "Saffron",
+    "Truffle", "Umami", "Violet", "Wonton", "Xerxes", "Yam", "Zucchini",
+    "Apricot", "Boba", "Crouton", "Dinky", "Fennel", "Goji", "Halloumi",
+    "Iris", "Jellybean", "Kale", "Lulu", "Miso", "Nori", "Olive",
+    "Pesto", "Quokka", "Rosemary", "Sage", "Tahini", "Ube", "Vesper",
+    "Wasabi", "Xena", "Yoshi", "Zelda", "Almond", "Brioche", "Custard",
+    "Doughnut", "Eclair", "Frittata", "Gnocchi", "Halva", "Inca",
+    "Java", "Kombu", "Latke",
+)
+
+LOCATIONS: tuple[str, ...] = (
+    "Toronto, ON", "Ottawa, ON", "Montreal, QC", "Vancouver, BC",
+    "Calgary, AB", "Edmonton, AB", "Halifax, NS", "Winnipeg, MB",
+    "Quebec City, QC", "Victoria, BC", "Saskatoon, SK",
+    "Seattle, WA", "Portland, OR", "San Francisco, CA", "Los Angeles, CA",
+    "San Diego, CA", "Phoenix, AZ", "Austin, TX", "Houston, TX",
+    "Dallas, TX", "Chicago, IL", "Denver, CO", "Minneapolis, MN",
+    "Boston, MA", "New York, NY", "Brooklyn, NY", "Philadelphia, PA",
+    "Pittsburgh, PA", "Washington, DC", "Atlanta, GA", "Miami, FL",
+    "Orlando, FL", "Nashville, TN", "St. Louis, MO", "Detroit, MI",
+    "Kansas City, MO", "Salt Lake City, UT", "Boise, ID",
+)
+
+HUMAN_NAMES: tuple[str, ...] = (
+    "Alex", "Priya", "Jordan", "Sam", "Morgan", "Casey", "Robin",
+    "Avery", "Riley", "Quinn", "Hayden", "Skylar", "Reese", "Sage",
+    "Cameron", "Kai", "Drew", "Emerson", "Frankie", "Harper",
+    "Iris", "Jules", "Kit", "Logan", "Mika", "Nico", "Oakley", "Parker",
+    "Rowan", "Sasha", "Tate", "Val", "Wren", "Yuki",
+)
+
+GENDERS: tuple[tuple[str, int], ...] = (
+    ("female", 45), ("male", 45), ("unknown", 10),
+)
+
+# Per-species weight; Syrian (munchkin) and Roborovski are the most common
+# pet species in North America, so they show up most often.
+SPECIES_WEIGHTS: tuple[tuple[str, int], ...] = (
+    ("munchkin", 38),
+    ("dwarf_winter_white", 18),
+    ("roborovski", 20),
+    ("dwarf_campbell", 10),
+    ("chinese", 7),
+    ("other", 7),
+)
+
+COLORS_BY_SPECIES: dict[str, tuple[str, ...]] = {
+    "munchkin": (
+        "Golden", "Black bear", "Cream", "Banded black and white",
+        "Long-haired golden", "Sable", "Cinnamon", "Dove", "Tortoiseshell",
+        "Dilute cinnamon",
+    ),
+    "dwarf_winter_white": (
+        "Pearl", "Sapphire", "Sapphire pearl", "Marbled",
+        "Standard agouti winter coat",
+    ),
+    "dwarf_campbell": (
+        "Argente", "Blue fawn", "Opal", "Black-eyed argente",
+        "Mottled", "Albino",
+    ),
+    "roborovski": (
+        "Sandy with a white belly", "White-faced sandy", "Husky",
+        "Platinum", "Pied",
+    ),
+    "chinese": (
+        "Brown with a dorsal stripe", "Dominant spot", "Black-eyed white",
+        "Cinnamon",
+    ),
+    "other": (
+        "Pet shop mystery mix", "Varied", "Light brown", "Black-eyed cream",
+    ),
+}
+
+TEMPERAMENTS: tuple[str, ...] = (
+    "Curious, gentle, surprisingly opinionated about millet.",
+    "Zoomies. Constant zoomies.",
+    "Shy at first, then a total snack thief.",
+    "Bold, friendly, slightly dramatic.",
+    "Climber. Would live in the curtains if allowed.",
+    "Cuddly once she trusts you. Trust takes about a week.",
+    "Calm, slow blinks, accepts being held in cupped hands.",
+    "Champion of the night-shift wheel.",
+    "Stuffs both cheeks completely full of pellets.",
+    "Polite. Will accept treats with a slight bow.",
+    "Loves cardboard tubes more than anything.",
+    "Watches you from the hideout, judges silently.",
+    "Adventurer; needs out-of-cage time daily.",
+    "Sweet, sleepy, tolerates baths in sand.",
+    "Snack-motivated. Will work for sunflower seeds.",
+)
+
+INCLUDES_TEMPLATES: tuple[str, ...] = (
+    "Bin cage (75L), {wheel}\" silent wheel, hideout, food + bedding for a month.",
+    "20-gallon tank, {wheel}\" wheel, sand bath, deep substrate.",
+    "Glass tank, mesh lid, wheel, all the bedding.",
+    "Cage, wheel, six cardboard tubes (the good kind).",
+    "Tall mesh enclosure, branches, hammock, food supply.",
+    "Plastic modular cage, wheel, two hideouts, water bottle.",
+    "DIY bin cage, {wheel}\" wheel, sand bath, chew toys.",
+    "IKEA Detolf conversion, mesh lid, deep bedding, wheel.",
+    "Faunarium with wire lid, wheel, bedding for a few weeks.",
+)
+
+STORY_TEMPLATES: tuple[str, ...] = (
+    "{name} is a {age_word} {species_word} who has lived with us since "
+    "{origin}. {pronoun_subj} loves {fav_thing} and is rehoming because "
+    "{reason}. Looking for a {home_type} home.",
+    "We adopted {name} from {origin} and {pronoun_subj}'s been an absolute "
+    "joy. Big personality despite being palm-sized. Loves {fav_thing}. "
+    "Rehoming due to {reason}.",
+    "{name} arrived as a {age_word} {species_word} and has grown into a "
+    "{trait} little hamster. {pronoun_subj} would do best in a {home_type} "
+    "household. {reason_sentence}",
+    "Honest pitch: {name} is {trait} and not for a beginner. {pronoun_subj} "
+    "loves {fav_thing}, ignores most toys, and has very specific opinions "
+    "about bedding depth. {reason_sentence}",
+    "{name} is a calm, observant {species_word}. Comfortable being held, "
+    "great at burrowing, doesn't bite. {reason_sentence}",
+)
+
+ORIGINS: tuple[str, ...] = (
+    "a local rescue", "a friend who couldn't keep him", "a friend who couldn't keep her",
+    "a pet store rehoming", "a colleague's surprise litter",
+    "the SPCA's small animals room", "an ad on a community board",
+)
+
+FAV_THINGS: tuple[str, ...] = (
+    "stuffing his cheeks", "running for hours on the wheel",
+    "sleeping in the cardboard castle", "exploring the bathtub playpen",
+    "gnawing on apple branches", "burrowing in deep paper bedding",
+    "millet sprigs", "sunflower seeds", "hand-fed mealworms",
+)
+
+REASONS: tuple[str, ...] = (
+    "we're moving overseas", "a new family allergy",
+    "a baby on the way needing the room",
+    "switching careers and travelling more",
+    "moving to a no-pets building",
+    "we need to downsize and can't take her with us",
+)
+
+HOME_TYPES: tuple[str, ...] = (
+    "quiet", "patient", "experienced", "kid-free", "calm and routine-driven",
+)
+
+TRAITS: tuple[str, ...] = (
+    "spirited", "sweet", "shy", "bold", "athletic", "cuddly", "independent",
+    "talkative", "watchful", "observant",
+)
 
 
-# Fields that get re-synced from SAMPLES onto existing rows when the table is
-# already populated. Keep this to low-risk editorial fields so we don't clobber
-# user-created listings or demo state.
-REFRESH_FIELDS: tuple[str, ...] = ("photo_url", "adoption_fee_cents", "species")
+def weighted_choice(rng: random.Random, options: tuple[tuple[str, int], ...]) -> str:
+    """Return one option string sampled by integer weight."""
+    values, weights = zip(*options, strict=True)
+    return rng.choices(values, weights=weights, k=1)[0]
 
 
-def seed() -> int:
-    """Insert ``SAMPLES`` into the hamsters table.
+def species_word(species: str) -> str:
+    """Render a species enum value as a friendly noun phrase for stories."""
+    return {
+        "munchkin": "Syrian",
+        "dwarf_winter_white": "winter white dwarf",
+        "dwarf_campbell": "Campbell's dwarf",
+        "roborovski": "Roborovski",
+        "chinese": "Chinese hamster",
+        "other": "hamster",
+    }[species]
 
-    If the table is empty, inserts all samples. If rows already exist, refresh
-    ``REFRESH_FIELDS`` on each matching sample (by ``name``) so re-running the
-    script picks up editorial changes without wiping the table.
 
-    Returns the number of rows inserted or updated.
+def age_word(months: int) -> str:
+    """Map an age in months to a casual descriptor for stories."""
+    if months < 4:
+        return "tiny pup"
+    if months < 12:
+        return "young"
+    if months < 24:
+        return "lively adult"
+    return "gentle senior"
+
+
+def build_story(rng: random.Random, name: str, species: str, age: int, gender: str) -> str:
+    """Render one story using a randomly-chosen template + per-listing details."""
+    pronouns = {"female": "she", "male": "he", "unknown": "they"}
+    pronoun_subj = pronouns[gender]
+    template = rng.choice(STORY_TEMPLATES)
+    reason = rng.choice(REASONS)
+    return template.format(
+        name=name,
+        age_word=age_word(age),
+        species_word=species_word(species),
+        pronoun_subj=pronoun_subj,
+        fav_thing=rng.choice(FAV_THINGS),
+        origin=rng.choice(ORIGINS),
+        reason=reason,
+        reason_sentence=f"Rehoming because {reason}.",
+        home_type=rng.choice(HOME_TYPES),
+        trait=rng.choice(TRAITS),
+    )
+
+
+def build_includes(rng: random.Random) -> str:
+    """Render one 'what's included' line, filling in template slots."""
+    return rng.choice(INCLUDES_TEMPLATES).format(wheel=rng.choice([6, 8, 10, 11]))
+
+
+def load_photo_pool() -> dict[str, list[str]]:
+    """Load the Commons-derived photo pool, raising a helpful error if missing."""
+    if not PHOTOS_PATH.exists():
+        raise SystemExit(
+            f"Missing {PHOTOS_PATH}. Run scripts/fetch_commons_photos.py first."
+        )
+    return json.loads(PHOTOS_PATH.read_text())
+
+
+def load_city_coords() -> dict[str, tuple[float, float]]:
+    """Load the city → (lat, lng) lookup used to place pins on the map."""
+    if not CITIES_PATH.exists():
+        raise SystemExit(f"Missing {CITIES_PATH}.")
+    raw = json.loads(CITIES_PATH.read_text())
+    return {city: (float(lat), float(lng)) for city, (lat, lng) in raw.items()}
+
+
+def jitter_coord(rng: random.Random, lat: float, lng: float) -> tuple[float, float]:
+    """Offset a coordinate by a small random amount so multiple listings in the
+    same city don't perfectly overlap on the map. The offset is well under
+    1km so pins stay inside the actual city bounds.
     """
+    return (
+        lat + rng.uniform(-0.015, 0.015),
+        lng + rng.uniform(-0.015, 0.015),
+    )
+
+
+def generate(count: int, seed: int = 42) -> list[dict[str, object]]:
+    """Generate ``count`` deterministic hamster listings with verified photos.
+
+    A seeded ``random.Random`` keeps the dataset reproducible across runs.
+    Photo URLs cycle within their species pool so every image is a real
+    photo of that exact species rather than a generic 'rodent' stock image.
+    """
+    rng = random.Random(seed)
+    pool = load_photo_pool()
+    photo_iters = {
+        species: itertools.cycle(rng.sample(urls, k=len(urls)))
+        for species, urls in pool.items()
+        if urls
+    }
+    coords = load_city_coords()
+
+    listings: list[dict[str, object]] = []
+    for i in range(count):
+        species = weighted_choice(rng, SPECIES_WEIGHTS)
+        if species not in photo_iters:
+            species = "munchkin"  # fallback to the largest pool
+        gender = weighted_choice(rng, GENDERS)
+        age = max(1, int(rng.triangular(2, 36, 8)))  # skew younger
+        fee_dollars = rng.choices(
+            [0, 25, 45, 65, 85, 100, 125, 150, 175, 200],
+            weights=[3, 5, 7, 9, 9, 7, 6, 4, 3, 2],
+            k=1,
+        )[0]
+        name = NAMES[i % len(NAMES)]
+        if i >= len(NAMES):
+            # Avoid duplicate primary keys-by-name; suffix with a roman numeral.
+            roman = "II III IV V VI VII VIII IX X".split()
+            name = f"{name} {roman[(i // len(NAMES)) - 1]}"
+        human = rng.choice(HUMAN_NAMES)
+        location = rng.choice(LOCATIONS)
+        base = coords.get(location)
+        latitude: float | None = None
+        longitude: float | None = None
+        if base is not None:
+            latitude, longitude = jitter_coord(rng, *base)
+        listings.append(
+            {
+                "name": name,
+                "species": species,
+                "age_months": age,
+                "gender": gender,
+                "color": rng.choice(COLORS_BY_SPECIES[species]),
+                "temperament": rng.choice(TEMPERAMENTS),
+                "story": build_story(rng, name, species, age, gender),
+                "includes": build_includes(rng),
+                "adoption_fee_cents": fee_dollars * 100,
+                "location": location,
+                "latitude": latitude,
+                "longitude": longitude,
+                "photo_url": next(photo_iters[species]),
+                "current_human_name": human,
+                "current_human_email": f"{human.lower()}{i}@example.com",
+            }
+        )
+    return listings
+
+
+def seed(replace: bool, count: int) -> int:
+    """Insert listings into the hamsters table.
+
+    With ``replace=True`` (or an empty table), wipe and insert ``count``
+    fresh rows. Otherwise, leave existing data alone.
+    """
+    rows = generate(count)
     with SessionLocal() as session:
         existing = session.query(Hamster).count()
-        if not existing:
-            session.add_all(Hamster(**sample) for sample in SAMPLES)
-            session.commit()
-            print(f"Inserted {len(SAMPLES)} sample hamsters.")
-            return len(SAMPLES)
-
-        updated = 0
-        for sample in SAMPLES:
-            row = session.query(Hamster).filter(Hamster.name == sample["name"]).first()
-            if row is None:
-                session.add(Hamster(**sample))
-                updated += 1
-                continue
-            changed = False
-            for field in REFRESH_FIELDS:
-                if getattr(row, field) != sample[field]:
-                    setattr(row, field, sample[field])
-                    changed = True
-            if changed:
-                updated += 1
+        if existing and not replace:
+            print(
+                f"Skipping seed: {existing} hamster(s) already present. "
+                "Pass --replace to wipe and reseed."
+            )
+            return 0
+        if existing:
+            # TRUNCATE … RESTART IDENTITY so reseeded rows start at id=1 again,
+            # which keeps URLs like /hamsters/8 working across reseeds.
+            session.execute(
+                text("TRUNCATE TABLE hamsters RESTART IDENTITY CASCADE")
+            )
+        session.add_all(Hamster(**row) for row in rows)
         session.commit()
-        print(f"Refreshed {updated} hamster row(s); {existing} row(s) already present.")
-        return updated
+        print(f"Inserted {len(rows)} hamsters.")
+        return len(rows)
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse CLI flags for the seed entrypoint."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=200,
+        help="How many hamster listings to generate (default: 200).",
+    )
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Wipe existing rows and reseed (default: preserve existing data).",
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    seed()
+    args = parse_args()
+    seed(replace=args.replace, count=args.count)

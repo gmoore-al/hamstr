@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { gsap } from "@/lib/gsap";
 import { getLenis } from "@/components/motion/SmoothScroll";
 
@@ -22,6 +22,12 @@ import { getLenis } from "@/components/motion/SmoothScroll";
 export function PageTransition() {
   const router = useRouter();
   const pathname = usePathname();
+  // Search params are part of "where we are" — pagination links and filter
+  // submissions only change the query string, so we need to lift the curtain
+  // on those navigations too. Without this, ?page=2 etc. would leave the
+  // curtain stuck because pathname-only deps never re-fire.
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? "";
   const curtainRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const hammyRef = useRef<HTMLImageElement>(null);
@@ -152,7 +158,7 @@ export function PageTransition() {
       tl.kill();
       stopHammyAmbient();
     };
-  }, [pathname]);
+  }, [pathname, search]);
 
   // Intercept internal link clicks, play curtain in, then navigate.
   useEffect(() => {
@@ -190,6 +196,10 @@ export function PageTransition() {
         url.search === window.location.search
       )
         return;
+      // Same-pathname, search-only navigations (pagination, filter submits)
+      // are in-place data swaps, not real page transitions — skip the
+      // curtain so they feel snappy. Next.js will handle the soft nav.
+      if (url.pathname === window.location.pathname) return;
 
       // Capture-phase listener fires before next/link's onClick, so we
       // stop propagation to prevent Link from also calling router.push

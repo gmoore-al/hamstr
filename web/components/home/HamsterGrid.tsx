@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Hamster } from "@/lib/api";
 import { HamsterCard } from "@/components/HamsterCard";
+import { BrowseControls, BrowseFilters } from "@/components/home/BrowseControls";
+import { Pagination } from "@/components/home/Pagination";
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
 import { RevealChars } from "@/components/motion/RevealChars";
 import { RevealUp } from "@/components/motion/RevealUp";
@@ -18,9 +20,17 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 export function HamsterGrid({
   hamsters,
   error,
+  filters,
+  total,
+  page,
+  pageSize,
 }: {
   hamsters: Hamster[];
   error: string | null;
+  filters: BrowseFilters;
+  total: number;
+  page: number;
+  pageSize: number;
 }) {
   const gridRef = useRef<HTMLUListElement>(null);
 
@@ -94,12 +104,14 @@ export function HamsterGrid({
               className="body-lead mx-auto max-w-[48ch]"
               style={{ color: "color-mix(in srgb, var(--teal-dark) 80%, transparent)" }}
             >
-              {hamsters.length > 0
-                ? `${hamsters.length} small lives waiting for soft landings. Each one comes with a full story.`
+              {total > 0
+                ? `${total} small lives waiting for soft landings. Each one comes with a full story.`
                 : "No hamsters here yet. The grid will fill up as people post their listings."}
             </p>
           </RevealUp>
         </div>
+
+        <BrowseControls filters={filters} total={total} />
 
         {error ? (
           <div
@@ -129,16 +141,24 @@ export function HamsterGrid({
             </p>
           </div>
         ) : (
-          <ul
-            ref={gridRef}
-            className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {hamsters.map((h) => (
-              <li key={h.id}>
-                <HamsterCard hamster={h} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul
+              ref={gridRef}
+              className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {hamsters.map((h) => (
+                <li key={h.id}>
+                  <HamsterCard hamster={h} />
+                </li>
+              ))}
+            </ul>
+            <Pagination
+              filters={filters}
+              total={total}
+              page={page}
+              pageSize={pageSize}
+            />
+          </>
         )}
       </div>
     </section>

@@ -40,6 +40,8 @@ class HamsterBase(BaseModel):
     includes: str = Field(default="", max_length=2000)
     adoption_fee_cents: int = Field(ge=0, le=10_000_000, default=0)
     location: str = Field(default="", max_length=120)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
     photo_url: str = Field(default="", max_length=500)
 
 
