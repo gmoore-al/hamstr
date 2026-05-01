@@ -34,14 +34,43 @@ USER_AGENT = "HamstrSeed/0.1 (https://github.com/gmoore-al/skillful-marketplace)
 
 ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png"}
 
-# Skip files whose Commons title hints at a 19th-century illustration, an
-# anatomical diagram, or other non-photographic sources. The user wants real
-# hamster photos, not engravings of "Cricetus" from 1880.
+# Skip files whose Commons title hints at a non-photographic source
+# (illustrations, taxonomy plates), an anatomical/medical reference shot
+# (genital sexing, scent glands, dental closeups, hairless newborn pinkies),
+# or a textbook-style multi-angle reference (front/side/top/rear).
+#
+# These are the cases that survived the per-species category filter but
+# look gross / clinical / not-cute on a marketplace card. The user asked
+# for cute fuzzy photos only, so we err on the side of exclusion here and
+# rely on the visual contact-sheet curation step downstream to catch the
+# remainder.
 TITLE_BLOCK_TERMS: tuple[str, ...] = (
+    # 19th-century engravings & taxonomy plates
     "Gartenlaube", "Brehms_Tierleben", "Brehms Tierleben",
+    "Säugthiere", "Säugethiere", "Saugthiere", "Saeugthiere",
+    "Abbildungen", "in_Abbildungen",
     "1873", "1880", "1888", "1890", "1900", "1910", "1920",
     "engraving", "illustration", "drawing", "Zeichnung",
-    "diagram", "schematic", "anatomy", "skeleton", "taxidermy",
+    "diagram", "schematic", "skeleton", "taxidermy",
+
+    # Anatomy / sex / medical reference shots
+    "anatomy", "Geschlecht", "Gesclechtb", "Flankendr",
+    "scent_gland", "scentgland", "teeth", "tooth", "brain",
+    "pouch", "feet", "fuß", "fuss", "paw_closeup",
+    "genital", "sexing", "rear",  # rear view often = underside / vent
+    "3beine", "3_beine", "three_legs",  # likely medical
+    "wound", "injury", "tumor", "tumour",
+
+    # Hairless newborn "pinkies" — not cute on a pet listing
+    "8_days_old", "9tage", "10_days", "litter15days",
+    "pinky", "pinkies", "newborn",
+
+    # Reference / multi-angle clinical shots (front/side/top variants)
+    "_distribution", "distribution.jpg", "_burrow.png",
+    "_maze.", "schema",
+
+    # Misc not-a-pet-photo
+    "Museum", "museum", "panoramio",
 )
 
 

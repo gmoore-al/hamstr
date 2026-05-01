@@ -1,8 +1,17 @@
 """Seed the database with ~200 realistic hamster rehoming listings.
 
-Photos come from ``scripts/data/hamster_photos.json`` (populated by
-``fetch_commons_photos.py`` from Wikimedia Commons), so every image is a
-real, human-classified photo of a hamster — not a stock-photo handbag.
+Photos come from ``scripts/data/hamster_photos_approved.json`` — a hand-
+curated subset of Wikimedia Commons that we visually verified to contain
+only cute, fuzzy pet hamsters (no illustrations, no anatomy reference
+shots, no hairless newborn pinkies). The raw pool at
+``hamster_photos.json`` is the fallback when the approved file is missing.
+
+Refreshing the photo pool::
+
+    python scripts/fetch_commons_photos.py    # pull latest URLs from Commons
+    python scripts/curate_photos.py           # build per-species contact sheets
+    # ... eyeball api/scripts/data/contact_sheets/*.png ...
+    python scripts/build_approved_photos.py   # (re)write the approved JSON
 
 Run from the API directory with the venv active::
 
@@ -27,8 +36,15 @@ from sqlalchemy import text  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 from app.models import Hamster  # noqa: E402
 
-PHOTOS_PATH = Path(__file__).resolve().parent / "data" / "hamster_photos.json"
-CITIES_PATH = Path(__file__).resolve().parent / "data" / "cities.json"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+# Hand-curated, visually-approved subset of the raw Commons pool. We
+# prefer this file when present so listings only show "cute fuzzy" pet
+# hamsters — no anatomy reference shots, no hairless newborn pinkies, no
+# 19th-century engravings. The raw pool is the fallback for fresh checkouts
+# that haven't yet run the curation pipeline.
+APPROVED_PHOTOS_PATH = DATA_DIR / "hamster_photos_approved.json"
+PHOTOS_PATH = DATA_DIR / "hamster_photos.json"
+CITIES_PATH = DATA_DIR / "cities.json"
 
 NAMES: tuple[str, ...] = (
     "Beatrice", "Mochi", "Pickle", "Captain Whiskers", "Tofu", "Pip",
@@ -244,12 +260,26 @@ def build_includes(rng: random.Random) -> str:
 
 
 def load_photo_pool() -> dict[str, list[str]]:
-    """Load the Commons-derived photo pool, raising a helpful error if missing."""
-    if not PHOTOS_PATH.exists():
-        raise SystemExit(
-            f"Missing {PHOTOS_PATH}. Run scripts/fetch_commons_photos.py first."
+    """Load the photo pool, preferring the visually-approved allowlist.
+
+    The approved list is the output of ``scripts/build_approved_photos.py``
+    and is what production seeding should use. The raw Commons pool is a
+    fallback so a fresh clone (or a CI job) without the curation artefacts
+    can still seed the demo with reasonable photos.
+    """
+    if APPROVED_PHOTOS_PATH.exists():
+        return json.loads(APPROVED_PHOTOS_PATH.read_text())
+    if PHOTOS_PATH.exists():
+        print(
+            f"  ! {APPROVED_PHOTOS_PATH.name} missing — falling back to raw "
+            f"{PHOTOS_PATH.name}. Photos may include illustrations or anatomy "
+            "shots; run scripts/build_approved_photos.py to fix.",
         )
-    return json.loads(PHOTOS_PATH.read_text())
+        return json.loads(PHOTOS_PATH.read_text())
+    raise SystemExit(
+        f"Missing photo pool: expected {APPROVED_PHOTOS_PATH} or {PHOTOS_PATH}. "
+        "Run scripts/fetch_commons_photos.py and scripts/build_approved_photos.py."
+    )
 
 
 def load_city_coords() -> dict[str, tuple[float, float]]:
