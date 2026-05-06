@@ -1,5 +1,5 @@
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
-import { Octagon } from "@/components/ui/Octagon";
+import { Squircle } from "@/components/ui/Squircle";
 import { PillCTA } from "@/components/ui/PillCTA";
 
 /**
@@ -25,7 +25,7 @@ export default function NotFound() {
           gap: "clamp(2rem, 4.5vh, 3rem)",
         }}
       >
-        <Octagon
+        <Squircle
           className="h-28 w-28 sm:h-36 sm:w-36"
           style={{ background: "var(--mustard)" }}
         >
@@ -35,7 +35,7 @@ export default function NotFound() {
           >
             🐹
           </div>
-        </Octagon>
+        </Squircle>
 
         <ConnectedPills parts={["NOTHING", "HERE"]} tones={["ink", "mustard"]} />
 

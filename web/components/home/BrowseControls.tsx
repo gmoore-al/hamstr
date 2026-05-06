@@ -5,19 +5,18 @@ import { FormEvent, useState } from "react";
 import { GENDERS, Gender, SPECIES, Species } from "@/lib/api";
 
 export interface BrowseFilters {
-  q: string;
   species: Species | "";
   gender: Gender | "";
   location: string;
-  maxFee: string;
 }
 
 /**
- * Filter + search panel for the browse grid.
+ * Filter panel for the browse grid.
  *
- * Submits to ``/`` with URL search params so the home page can re-render
- * server-side and pagination links share the same state. Keeps the
- * Tesoro colour-block aesthetic by sitting on a translucent teal card.
+ * Three filters: location, gender, breed. Submits to ``/`` with URL
+ * search params so the home page can re-render server-side and
+ * pagination links share the same state. Keeps the Tesoro colour-block
+ * aesthetic by sitting on a translucent teal card.
  */
 export function BrowseControls({
   filters,
@@ -40,18 +39,21 @@ export function BrowseControls({
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const params = new URLSearchParams();
-    if (values.q.trim()) params.set("q", values.q.trim());
     if (values.species) params.set("species", values.species);
     if (values.gender) params.set("gender", values.gender);
     if (values.location.trim()) params.set("location", values.location.trim());
-    if (values.maxFee.trim()) params.set("max_fee", values.maxFee.trim());
     const qs = params.toString();
-    router.push(qs ? `/?${qs}#hamsters` : "/#hamsters");
+    // ``scroll: false`` keeps the user anchored on the filter panel and
+    // lets the grid component play its own slide-in animation when the
+    // new results stream in. Without it, Next.js would jump-scroll to
+    // the ``#hamsters`` anchor, which clashes with the in-place swap
+    // and feels like a full-page reload.
+    router.push(qs ? `/?${qs}#hamsters` : "/#hamsters", { scroll: false });
   }
 
   function onReset() {
-    setValues({ q: "", species: "", gender: "", location: "", maxFee: "" });
-    router.push("/#hamsters");
+    setValues({ species: "", gender: "", location: "" });
+    router.push("/#hamsters", { scroll: false });
   }
 
   const hasFilters = Boolean(searchParams.toString());
@@ -65,33 +67,12 @@ export function BrowseControls({
         color: "var(--teal-dark)",
       }}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Search by name">
-          <input
-            type="search"
-            value={values.q}
-            onChange={(e) => update("q", e.target.value)}
-            placeholder="e.g. Mochi, Beatrice"
-            className={inputClass}
-          />
-        </Field>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Location">
           <input
             value={values.location}
             onChange={(e) => update("location", e.target.value)}
             placeholder="e.g. Toronto, ON"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Max adoption fee ($)">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step="5"
-            value={values.maxFee}
-            onChange={(e) => update("maxFee", e.target.value)}
-            placeholder="any"
             className={inputClass}
           />
         </Field>

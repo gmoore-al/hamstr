@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet.markercluster";
-import { Hamster, SPECIES, formatFee } from "@/lib/api";
+import { Hamster, SPECIES, formatAge, formatFee } from "@/lib/api";
 import { LeafletCSS } from "./leaflet-css";
+import { hamsterClusterIcon, hamsterPinIcon } from "./icons";
 
 /**
  * Full-page clustered map of every hamster that has coordinates.
@@ -37,8 +38,6 @@ export function HamsterMap({ hamsters }: { hamsters: Hamster[] }) {
     if (!node) return;
     if (mapRef.current) return; // dev-mode StrictMode double-invoke guard
 
-    fixDefaultIconPaths();
-
     const map = L.map(node, {
       center: [42.5, -94],
       zoom: 4,
@@ -47,12 +46,15 @@ export function HamsterMap({ hamsters }: { hamsters: Hamster[] }) {
     });
     mapRef.current = map;
 
+    // CARTO Voyager: soft, muted basemap that lets the brand teal pins pop
+    // without going fully grayscale.
     L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
       {
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attribution">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
       },
     ).addTo(map);
 
@@ -72,26 +74,21 @@ export function HamsterMap({ hamsters }: { hamsters: Hamster[] }) {
       spiderfyOnMaxZoom: true,
       zoomToBoundsOnClick: true,
       maxClusterRadius: 60,
-      iconCreateFunction: (group) => {
-        const count = group.getChildCount();
-        const size = count < 10 ? 36 : count < 100 ? 44 : 56;
-        return L.divIcon({
-          html: `<div class="hamstr-cluster-inner">${count}</div>`,
-          className: "hamstr-cluster",
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-      },
+      iconCreateFunction: (group) => hamsterClusterIcon(group.getChildCount()),
     });
 
     for (const h of points) {
       const marker = L.marker([h.latitude, h.longitude], {
-        icon: pinIcon(),
+        icon: hamsterPinIcon(),
         title: h.name,
+        riseOnHover: true,
       });
       marker.bindPopup(buildPopup(h), {
-        maxWidth: 240,
+        maxWidth: 280,
+        minWidth: 280,
         className: "hamstr-popup",
+        closeButton: false,
+        autoPanPadding: [24, 24],
       });
       cluster.addLayer(marker);
     }
@@ -116,47 +113,30 @@ export function HamsterMap({ hamsters }: { hamsters: Hamster[] }) {
   );
 }
 
-/**
- * Leaflet's bundler-resolved default icon paths break in webpack/turbopack
- * setups. Re-point them at the published CDN images so pins always render.
- */
-function fixDefaultIconPaths(): void {
-  const proto = L.Icon.Default.prototype as unknown as {
-    _getIconUrl?: () => string;
-  };
-  delete proto._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-}
-
-function pinIcon(): L.DivIcon {
-  return L.divIcon({
-    html: '<div class="hamstr-pin"></div>',
-    className: "hamstr-pin-wrap",
-    iconSize: [28, 36],
-    iconAnchor: [14, 34],
-    popupAnchor: [0, -30],
-  });
-}
-
 function buildPopup(h: Hamster & { latitude: number; longitude: number }): string {
   const speciesLabel =
     SPECIES.find((s) => s.value === h.species)?.label ?? h.species;
-  const fee = formatFee(h.adoption_fee_cents);
+  const isFree = h.adoption_fee_cents === 0;
+  const fee = isFree ? "Free to a good home" : formatFee(h.adoption_fee_cents);
+  const age = formatAge(h.age_months);
+  const eyebrow = `${speciesLabel} · ${h.gender}`;
   const photo = h.photo_url
     ? `<img src="${escapeAttr(h.photo_url)}" alt="" class="hamstr-popup-photo" loading="lazy" />`
-    : '<div class="hamstr-popup-photo hamstr-popup-photo--empty">🐹</div>';
+    : '<div class="hamstr-popup-photo hamstr-popup-photo--empty" aria-hidden="true">🐹</div>';
+  const chipClass = isFree
+    ? "hamstr-popup-fee hamstr-popup-fee--free"
+    : "hamstr-popup-fee";
   return `
     <a class="hamstr-popup-link" href="/hamsters/${h.id}">
-      ${photo}
+      <div class="hamstr-popup-photo-wrap">${photo}</div>
       <div class="hamstr-popup-body">
-        <p class="hamstr-popup-name">${escapeText(h.name)}</p>
-        <p class="hamstr-popup-meta">${escapeText(speciesLabel)} · ${escapeText(h.location)}</p>
-        <p class="hamstr-popup-fee">${escapeText(fee)}</p>
+        <p class="hamstr-popup-eyebrow">${escapeText(eyebrow)}</p>
+        <h3 class="hamstr-popup-name">${escapeText(h.name)}<span aria-hidden="true">.</span></h3>
+        <p class="hamstr-popup-meta">${escapeText(age)} &middot; ${escapeText(h.location)}</p>
+        <div class="hamstr-popup-footer">
+          <span class="${chipClass}">${escapeText(fee)}</span>
+          <span class="hamstr-popup-view">View <span aria-hidden="true">→</span></span>
+        </div>
       </div>
     </a>
   `;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
 import { gsap, SplitText } from "@/lib/gsap";
 
 /**
@@ -15,12 +15,14 @@ export function StaggerHoverLink({
   hoverColor = "var(--mustard)",
   className = "",
   external = false,
+  onClick,
 }: {
   href: string;
   children: string;
   hoverColor?: string;
   className?: string;
   external?: boolean;
+  onClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
 
@@ -75,6 +77,7 @@ export function StaggerHoverLink({
         target="_blank"
         rel="noreferrer"
         className={className}
+        onClick={onClick}
       >
         {inner}
       </a>
@@ -82,7 +85,7 @@ export function StaggerHoverLink({
   }
 
   return (
-    <Link ref={ref} href={href} className={className}>
+    <Link ref={ref} href={href} className={className} onClick={onClick}>
       {inner}
     </Link>
   );

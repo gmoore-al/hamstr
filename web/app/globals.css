@@ -213,6 +213,41 @@ html.lenis body {
   }
 }
 
+/* Same warm-flow gradient + animation as `.gradient-flow`, but emitted
+ * as a regular paint (no background-clip:text). Pair with a CSS
+ * mask-image (e.g. the SVG wordmark in HamstrWordmark) so the colours
+ * stream through the masked silhouette. */
+.gradient-flow-paint {
+  background-image: linear-gradient(
+    90deg,
+    var(--rose) 0%,
+    var(--coral) 25%,
+    var(--mustard) 50%,
+    var(--coral) 75%,
+    var(--rose) 100%
+  );
+  background-image: linear-gradient(
+    in oklch 90deg,
+    var(--rose) 0%,
+    var(--coral) 25%,
+    var(--mustard) 50%,
+    var(--coral) 75%,
+    var(--rose) 100%
+  );
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  background-position: 0% 50%;
+  animation: gradient-flow var(--gradient-flow-duration, 9s) linear infinite;
+  will-change: background-position;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-flow-paint {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}
+
 .display-xl {
   font-family: var(--font-display), Georgia, serif;
   font-weight: 800;
@@ -268,19 +303,13 @@ html.lenis body {
 }
 
 /* ─────────────────────────────────────────────
-   OCTAGON — clean Tesoro-style 8-sided clip
+   SQUIRCLE — soft rounded-square mask
+   28% radius lands close to an iOS-style squircle
+   while staying responsive to any container size.
    ───────────────────────────────────────────── */
-.clip-octagon {
-  clip-path: polygon(
-    29.29% 0%,
-    70.71% 0%,
-    100% 29.29%,
-    100% 70.71%,
-    70.71% 100%,
-    29.29% 100%,
-    0% 70.71%,
-    0% 29.29%
-  );
+.clip-squircle {
+  border-radius: 28%;
+  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────
@@ -362,8 +391,8 @@ html.lenis body {
 }
 
 /* ─────────────────────────────────────────────
-   STAGE NUMBER — octagon with number inside
-   (Tesoro step indicator pattern)
+   STAGE NUMBER — squircle with number inside
+   (Tesoro step-indicator pattern, softened)
    ───────────────────────────────────────────── */
 .stage-number {
   display: inline-flex;
@@ -375,16 +404,7 @@ html.lenis body {
   font-weight: 800;
   font-size: 1.125rem;
   letter-spacing: -0.02em;
-  clip-path: polygon(
-    29.29% 0%,
-    70.71% 0%,
-    100% 29.29%,
-    100% 70.71%,
-    70.71% 100%,
-    29.29% 100%,
-    0% 70.71%,
-    0% 29.29%
-  );
+  border-radius: 28%;
 }
 
 /* ─────────────────────────────────────────────
@@ -440,117 +460,228 @@ html.lenis body {
 
 /* ─────────────────────────────────────────────
    MAP — Leaflet pin, cluster, and popup styles.
-   Leaflet ships its own default styles via the
-   imported CSS files; these overrides give the
-   pins/clusters/popups the Hamstr palette.
+   Pin + cluster shapes are inline SVG (see
+   components/map/icons.ts); these rules are for
+   layout/tip/popup chrome only.
    ───────────────────────────────────────────── */
-.hamstr-pin-wrap {
-  background: transparent;
-  border: 0;
-}
-.hamstr-pin {
-  width: 28px;
-  height: 36px;
-  background: var(--teal);
-  border: 3px solid var(--cream);
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  box-shadow: 0 6px 12px -4px rgba(16, 52, 50, 0.45);
-  position: relative;
-  transform-origin: 50% 100%;
-}
-.hamstr-pin::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 8px;
-  height: 8px;
-  background: var(--teal);
-  transform: translateX(-50%) rotate(45deg);
-  border-bottom-right-radius: 2px;
-}
 
+/* Marker wrappers: kill Leaflet's default white square + border so the
+   SVG silhouette is the entire visible marker. */
+.hamstr-pin-wrap,
 .hamstr-cluster {
-  background: transparent;
-  border: 0;
+  background: transparent !important;
+  border: 0 !important;
 }
-.hamstr-cluster-inner {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--teal);
-  color: var(--cream);
-  font-family: var(--font-display), serif;
-  font-weight: 800;
-  font-size: 0.95rem;
-  border: 3px solid var(--cream);
-  box-shadow: 0 6px 14px -4px rgba(16, 52, 50, 0.45);
-  clip-path: polygon(
-    29.29% 0%,
-    70.71% 0%,
-    100% 29.29%,
-    100% 70.71%,
-    70.71% 100%,
-    29.29% 100%,
-    0% 70.71%,
-    0% 29.29%
-  );
+.hamstr-pin-wrap > svg,
+.hamstr-cluster > svg {
+  display: block;
+  pointer-events: auto;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hamstr-pin-wrap:hover > svg {
+  transform: translateY(-2px) scale(1.04);
+}
+.hamstr-cluster:hover > svg {
+  transform: scale(1.05);
 }
 
-.leaflet-popup-content-wrapper.hamstr-popup,
-.hamstr-popup .leaflet-popup-content-wrapper {
-  border-radius: 16px;
+/* Soften CARTO Voyager tiles so brand colours dominate. */
+.leaflet-container {
+  background: var(--cream-deep);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+.leaflet-tile-pane {
+  filter: saturate(0.78) contrast(0.96);
+}
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--cream) 88%, transparent) !important;
+  color: var(--ink-mute) !important;
+  font-size: 10px !important;
+  border-radius: 6px 0 0 0 !important;
+  padding: 2px 8px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--teal) !important;
+}
+.leaflet-control-zoom a {
+  background: var(--cream) !important;
+  color: var(--teal-dark) !important;
+  border-color: color-mix(in srgb, var(--ink) 12%, transparent) !important;
+  font-weight: 700 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--cream-deep) !important;
+}
+
+/* ─── Popup card ───────────────────────────── */
+.leaflet-popup.hamstr-popup .leaflet-popup-content-wrapper {
+  border-radius: 18px;
   padding: 0;
   background: var(--cream);
   color: var(--ink);
+  box-shadow:
+    0 24px 40px -22px rgba(16, 52, 50, 0.35),
+    0 6px 16px -10px rgba(16, 52, 50, 0.28);
 }
-.hamstr-popup .leaflet-popup-content {
+.leaflet-popup.hamstr-popup .leaflet-popup-content {
   margin: 0;
-  width: 220px !important;
+  width: 264px !important;
+  line-height: 1.45;
 }
+.leaflet-popup.hamstr-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+.leaflet-popup.hamstr-popup .leaflet-popup-tip {
+  background: var(--cream);
+  box-shadow: 0 6px 12px -8px rgba(16, 52, 50, 0.45);
+}
+
 .hamstr-popup-link {
   display: flex;
   flex-direction: column;
   text-decoration: none;
   color: inherit;
-  border-radius: 16px;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hamstr-popup-link:hover {
+  transform: translateY(-1px);
+}
+.hamstr-popup-link:hover .hamstr-popup-photo {
+  transform: scale(1.03);
+}
+
+.hamstr-popup-photo-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--teal-base);
   overflow: hidden;
 }
 .hamstr-popup-photo {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   object-fit: cover;
-  background: var(--teal-base);
+  display: block;
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .hamstr-popup-photo--empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 40px;
 }
+/* Subtle bottom fade so the eyebrow has air against busier photos. */
+.hamstr-popup-photo-wrap::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 32%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--cream) 45%, transparent) 100%
+  );
+  pointer-events: none;
+}
+
 .hamstr-popup-body {
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.hamstr-popup-name {
-  font-family: var(--font-display), serif;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-.hamstr-popup-meta {
-  font-size: 0.75rem;
+.hamstr-popup-eyebrow {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--ink-soft);
   margin: 0;
 }
-.hamstr-popup-fee {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--teal);
+.hamstr-popup-name {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 800;
+  font-size: 1.625rem;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--ink);
   margin: 4px 0 0;
+}
+.hamstr-popup-name span {
+  color: var(--teal);
+  margin-left: 1px;
+}
+.hamstr-popup-meta {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: 1.4;
+}
+.hamstr-popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.hamstr-popup-fee {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px 5px;
+  background: var(--teal);
+  color: var(--cream);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.hamstr-popup-fee--free {
+  background: var(--mustard);
+  color: var(--mustard-dark);
+}
+.hamstr-popup-view {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  white-space: nowrap;
+}
+.hamstr-popup-view span {
+  display: inline-block;
+  margin-left: 4px;
+  transition: transform 200ms ease;
+}
+.hamstr-popup-link:hover .hamstr-popup-view span {
+  transform: translateX(3px);
+}
+
+/* Tooltip on the mini-map (single non-interactive marker). */
+.leaflet-tooltip.hamstr-tooltip,
+.leaflet-tooltip {
+  background: var(--ink) !important;
+  color: var(--cream) !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 6px 16px -8px rgba(16, 52, 50, 0.45) !important;
+}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+  border-top-color: var(--ink) !important;
+  border-bottom-color: var(--ink) !important;
+  border-left-color: var(--ink) !important;
+  border-right-color: var(--ink) !important;
 }

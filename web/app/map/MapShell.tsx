@@ -38,6 +38,12 @@ export function MapShell({
 }) {
   return (
     <section
+      // `data-tone` lets the sticky header read the section colour and
+      // pick a legible wordmark/CTA palette. Without it, the header
+      // would inherit whatever tone was last set on the previous route
+      // and the wordmark could end up inverted (white) on this light
+      // teal-tinted surface.
+      data-tone="teal-base"
       className="relative w-full"
       style={{ background: "var(--teal-base)" }}
     >
@@ -53,12 +59,6 @@ export function MapShell({
         }}
       >
         <header className="flex flex-col gap-3">
-          <p
-            className="label-eyebrow"
-            style={{ color: "var(--teal-dark)", opacity: 0.7 }}
-          >
-            VIEW MAP
-          </p>
           <h1
             className="display-lg"
             style={{ color: "var(--teal-dark)", maxWidth: "20ch" }}
@@ -69,9 +69,7 @@ export function MapShell({
             className="body-lead max-w-2xl"
             style={{ color: "color-mix(in srgb, var(--teal-dark) 80%, transparent)" }}
           >
-            {error
-              ? error
-              : `${hamsters.length} hamsters with locations. Zoom in to break clusters apart, click a pin for the listing.`}
+            {error ? error : "Hundreds of hamsters across North America."}
           </p>
           <div className="flex gap-2">
             <Link

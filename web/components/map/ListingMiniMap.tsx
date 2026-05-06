@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { LeafletCSS } from "./leaflet-css";
+import { hamsterPinIcon } from "./icons";
 
 /**
  * Compact, non-interactive map for the listing detail page.
@@ -42,19 +43,18 @@ export function ListingMiniMap({
     });
     mapRef.current = map;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attribution">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      },
+    ).addTo(map);
 
     const marker = L.marker([latitude, longitude], {
-      icon: L.divIcon({
-        html: '<div class="hamstr-pin"></div>',
-        className: "hamstr-pin-wrap",
-        iconSize: [28, 36],
-        iconAnchor: [14, 34],
-      }),
+      icon: hamsterPinIcon(),
     }).addTo(map);
     if (label) marker.bindTooltip(label, { permanent: false, direction: "top" });
 

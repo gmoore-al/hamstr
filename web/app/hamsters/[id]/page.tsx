@@ -9,7 +9,7 @@ import {
   formatFee,
 } from "@/lib/api";
 import { paletteFor } from "@/lib/palettes";
-import { Octagon } from "@/components/ui/Octagon";
+import { Squircle } from "@/components/ui/Squircle";
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { ContactCurrentHumanToggle } from "./ContactCurrentHumanToggle";
@@ -18,7 +18,7 @@ import { MiniMapBlock } from "./MiniMapBlock";
 /**
  * Hamster detail — Tesoro pattern: full-bleed coloured section that
  * reuses the same deterministic palette as the hamster's grid card,
- * so clicking a card feels like walking into the card. Large octagon
+ * so clicking a card feels like walking into the card. Large squircle
  * photo on a saturated accent, display-lg name, pill-style spec chips,
  * and matching-tint story / comes-with / contact blocks.
  *
@@ -93,7 +93,7 @@ export default async function HamsterDetailPage({
         </RevealUp>
 
         <div className="grid w-full grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-14">
-          {/* LEFT — octagon photo on an accent pad */}
+          {/* LEFT — squircle photo on an accent pad */}
           <RevealUp className="flex justify-center lg:justify-start">
             <div
               className="rounded-[2.25rem] p-6 sm:p-8"
@@ -103,7 +103,7 @@ export default async function HamsterDetailPage({
                 maxWidth: 520,
               }}
             >
-              <Octagon
+              <Squircle
                 className="aspect-square w-full"
                 style={{ background: palette.accent }}
               >
@@ -125,7 +125,7 @@ export default async function HamsterDetailPage({
                     🐹
                   </div>
                 )}
-              </Octagon>
+              </Squircle>
             </div>
           </RevealUp>
 

@@ -13,7 +13,7 @@ import { FounderLetter } from "@/components/home/FounderLetter";
 import { HamsterGrid } from "@/components/home/HamsterGrid";
 import { HowItWorks } from "@/components/home/HowItWorks";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 6;
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -25,19 +25,15 @@ function firstString(value: string | string[] | undefined): string {
 function parseFilters(params: SearchParams): {
   filters: BrowseFilters;
   apiFilters: {
-    q?: string;
     species?: Species;
     gender?: Gender;
     location?: string;
-    max_fee_cents?: number;
   };
   page: number;
 } {
-  const q = firstString(params.q);
   const speciesRaw = firstString(params.species);
   const genderRaw = firstString(params.gender);
   const location = firstString(params.location);
-  const maxFee = firstString(params.max_fee);
   const pageRaw = Number(firstString(params.page));
   const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
 
@@ -48,26 +44,16 @@ function parseFilters(params: SearchParams): {
     ? (genderRaw as Gender)
     : "";
 
-  const maxFeeNum = Number(maxFee);
-  const maxFeeCents =
-    maxFee && Number.isFinite(maxFeeNum) && maxFeeNum >= 0
-      ? Math.round(maxFeeNum * 100)
-      : undefined;
-
   return {
     filters: {
-      q,
       species,
       gender,
       location,
-      maxFee: maxFee || "",
     },
     apiFilters: {
-      q: q || undefined,
       species: species || undefined,
       gender: gender || undefined,
       location: location || undefined,
-      max_fee_cents: maxFeeCents,
     },
     page,
   };

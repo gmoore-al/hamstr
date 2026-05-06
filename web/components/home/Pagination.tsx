@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { MouseEvent } from "react";
 import { BrowseFilters } from "./BrowseControls";
 
 /**
- * Server-link pagination. Each Prev/Next/page-N link is a real ``<Link>``,
- * which keeps the home page server-rendered and shareable.
+ * Pagination for the browse grid.
+ *
+ * Each Prev/Next link is a real ``<Link>`` with a shareable href so the
+ * page is still bookmarkable / deep-linkable. Clicks are intercepted to
+ * call ``router.push(..., { scroll: false })`` so:
+ *
+ *   - Next.js doesn't auto-scroll to the ``#hamsters`` hash (which would
+ *     jump the viewport and feel jarring against a quick card swap).
+ *   - The PageTransition curtain stays down (it skips search-only navs).
+ *   - The grid component picks up the new ``page`` prop and runs its own
+ *     slide-in animation, so the new cards appear to glide in from the
+ *     right while the rest of the page stays exactly where it was.
  */
 export function Pagination({
   filters,
@@ -21,6 +32,7 @@ export function Pagination({
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const existing = useSearchParams();
+  const router = useRouter();
 
   if (totalPages <= 1) return null;
 
@@ -32,13 +44,21 @@ export function Pagination({
       params.set("page", String(targetPage));
     }
     // Preserve filters even if they came from controlled state rather than URL.
-    setIfPresent(params, "q", filters.q);
     setIfPresent(params, "species", filters.species);
     setIfPresent(params, "gender", filters.gender);
     setIfPresent(params, "location", filters.location);
-    setIfPresent(params, "max_fee", filters.maxFee);
     const qs = params.toString();
+    // Keep the #hamsters anchor in the href for shareability — but
+    // ``scroll: false`` on the click handler stops the browser from
+    // jumping to it.
     return qs ? `/?${qs}#hamsters` : "/#hamsters";
+  }
+
+  function onPagerNav(e: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+    router.push(href, { scroll: false });
   }
 
   const prevDisabled = page <= 1;
@@ -53,6 +73,7 @@ export function Pagination({
         href={hrefFor(page - 1)}
         disabled={prevDisabled}
         label="← Prev"
+        onNav={onPagerNav}
       />
       <p className="text-xs font-semibold uppercase tracking-wider opacity-70">
         Page {page} of {totalPages}
@@ -61,6 +82,7 @@ export function Pagination({
         href={hrefFor(page + 1)}
         disabled={nextDisabled}
         label="Next →"
+        onNav={onPagerNav}
       />
     </nav>
   );
@@ -78,10 +100,12 @@ function PagerLink({
   href,
   disabled,
   label,
+  onNav,
 }: {
   href: string;
   disabled: boolean;
   label: string;
+  onNav: (e: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   if (disabled) {
     return (
@@ -100,6 +124,7 @@ function PagerLink({
   return (
     <Link
       href={href}
+      onClick={(e) => onNav(e, href)}
       className="rounded-full px-5 py-2 text-xs font-bold tracking-wide text-white"
       style={{ background: "var(--teal-dark)" }}
     >
