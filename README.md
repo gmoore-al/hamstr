@@ -118,7 +118,7 @@ Both apps read config from `.env` files (already committed as `.env.example`):
 
 Railway’s **Railpack** auto-detector only looks at the **repository root**. In a monorepo it then sees `web/` + `api/` and **cannot decide** what to build → *“Railpack could not determine how to build the app.”*
 
-This repo fixes that with a **root `railway.toml`** that builds **`api/Dockerfile`**, so you do **not** have to set a Root Directory in the dashboard (you still can set it to `api` if you prefer Nixpacks there, but Docker from root is simpler).
+This repo fixes that with a **root `railway.toml`** that builds the root **`Dockerfile`** (copies `api/` into the image). Leave **Root Directory** empty in Railway; do not set it to `api`.
 
 1. **Variables** on the API service: `DATABASE_URL` (Supabase `postgresql+psycopg://…`), `CORS_ALLOW_ORIGINS`, optional `CORS_ALLOW_ORIGIN_REGEX` — see `api/.env.example`.
 2. **Networking**: generate a public URL; smoke-test `GET /health`.
