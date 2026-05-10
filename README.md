@@ -104,5 +104,24 @@ Both apps read config from `.env` files (already committed as `.env.example`):
 
 | File | Purpose |
 | --- | --- |
-| `api/.env` | `DATABASE_URL`, `POSTGRES_*`, `CORS_ALLOW_ORIGINS`, `API_HOST`, `API_PORT` |
+| `api/.env` | `DATABASE_URL`, `POSTGRES_*`, `CORS_ALLOW_ORIGINS`, optional `CORS_ALLOW_ORIGIN_REGEX`, `API_HOST`, `API_PORT` |
 | `web/.env.local` | `NEXT_PUBLIC_API_BASE_URL` (default `http://127.0.0.1:8000`) |
+
+### Vercel + hosted API (when the site is live but data does not load)
+
+1. In Vercel → your project → **Settings → Environment Variables**, set **`NEXT_PUBLIC_API_BASE_URL`** to your public API URL (HTTPS, **no trailing slash**), e.g. `https://your-service.up.railway.app`.
+2. **Redeploy** after adding or changing that variable. `NEXT_PUBLIC_*` values are baked in at **`next build`**; an old deploy will keep calling `127.0.0.1:8000` until you rebuild.
+3. On the API host, set **`CORS_ALLOW_ORIGINS`** to your real web origin(s), e.g. `https://your-app.vercel.app` (comma-separated if several). For many Vercel preview URLs you can set **`CORS_ALLOW_ORIGIN_REGEX`** to `https://.*\.vercel\.app` (see `api/.env.example`).
+4. From your laptop: `curl https://<your-api>/health` should return `{"status":"ok"}`.
+
+### Railway (FastAPI in `api/`)
+
+Railway’s **Railpack** auto-detector only looks at the **repository root**. In a monorepo it then sees `web/` + `api/` and **cannot decide** what to build → *“Railpack could not determine how to build the app.”*
+
+This repo fixes that with a **root `railway.toml`** that builds **`api/Dockerfile`**, so you do **not** have to set a Root Directory in the dashboard (you still can set it to `api` if you prefer Nixpacks there, but Docker from root is simpler).
+
+1. **Variables** on the API service: `DATABASE_URL` (Supabase `postgresql+psycopg://…`), `CORS_ALLOW_ORIGINS`, optional `CORS_ALLOW_ORIGIN_REGEX` — see `api/.env.example`.
+2. **Networking**: generate a public URL; smoke-test `GET /health`.
+3. If you **remove** the root `railway.toml`, set **Service → Settings → Root Directory** to **`api`** and use **`uvicorn app.main:app --host 0.0.0.0 --port $PORT`** as the start command so Railpack sees `requirements.txt`.
+
+If a deploy fails, copy the **Build Logs** error from Railway (not GitHub).
