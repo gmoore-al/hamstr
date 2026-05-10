@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { getLenis } from "@/components/motion/SmoothScroll";
+import { HamstrWordmark } from "@/components/HamstrWordmark";
 import { StaggerHoverLink } from "@/components/nav/StaggerHoverLink";
 import { trackEvent } from "@/lib/analytics";
 
@@ -152,30 +153,20 @@ export function Header() {
       }}
     >
       <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4">
-        {/* Brand wordmark — solid ink "hamstr" PNG with a true alpha
-            channel, so it sits cleanly on any section colour. The mark
-            recolors to cream on dark sections via the CSS filter below. */}
+        {/* Brand wordmark — same SVG-masked mark as Hero/Footer so the
+            nav glyph matches the rest of the site (not the raster PNG). */}
         <Link
           href="/"
           className="flex items-center"
+          style={{ width: "clamp(6.5rem, 10vw, 8.5rem)" }}
           aria-label="Hamstr home"
           onClick={() => trackEvent("nav_home")}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/hamstr-wordmark.png"
-            alt="Hamstr"
+          <HamstrWordmark
+            variant={dark ? "cream" : "ink"}
+            ariaLabel="Hamstr"
             style={{
-              display: "block",
-              // 476 × 156 native aspect → 3.05:1. Width clamps with
-              // viewport so it reads on mobile without overwhelming
-              // the nav.
-              width: "clamp(6.5rem, 10vw, 8.5rem)",
-              height: "auto",
-              // On dark sections, invert the dark mark to cream so it
-              // remains legible against teal/coral/rose/ink backgrounds.
-              filter: dark ? "invert(1) brightness(1.6)" : "none",
-              transition: "filter 320ms ease",
+              transition: "background 320ms ease",
             }}
           />
         </Link>
