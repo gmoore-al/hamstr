@@ -39,34 +39,9 @@ def _apply_filters(
     return stmt
 
 
-@router.get("", response_model=list[HamsterRead])
-def list_hamsters(
-    db: Session = Depends(get_db),
-    q: str | None = Query(default=None, description="Free-text name substring"),
-    species: Species | None = Query(default=None),
-    gender: Gender | None = Query(default=None),
-    location: str | None = Query(default=None),
-    max_fee_cents: int | None = Query(default=None, ge=0),
-    limit: int = Query(default=24, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
-) -> list[Hamster]:
-    """Return hamsters filtered by optional query parameters.
-
-    Results are ordered by most-recently created first. Pair with the
-    ``GET /hamsters/count`` endpoint for total-row pagination.
-    """
-    stmt = _apply_filters(
-        select(Hamster),
-        q=q,
-        species=species,
-        gender=gender,
-        location=location,
-        max_fee_cents=max_fee_cents,
-    )
-    stmt = stmt.order_by(Hamster.created_at.desc()).limit(limit).offset(offset)
-    return list(db.execute(stmt).scalars().all())
-
-
+# Static paths must be registered before ``/{hamster_id}`` and before the
+# bare ``""`` list route so ``/hamsters/count`` and ``/hamsters/map`` are
+# not swallowed by the wrong handler on some Starlette/FastAPI match orders.
 @router.get("/map", response_model=list[HamsterRead])
 def map_hamsters(
     db: Session = Depends(get_db),
@@ -115,6 +90,34 @@ def count_hamsters(
     )
     total = db.execute(stmt).scalar_one()
     return {"total": int(total)}
+
+
+@router.get("", response_model=list[HamsterRead])
+def list_hamsters(
+    db: Session = Depends(get_db),
+    q: str | None = Query(default=None, description="Free-text name substring"),
+    species: Species | None = Query(default=None),
+    gender: Gender | None = Query(default=None),
+    location: str | None = Query(default=None),
+    max_fee_cents: int | None = Query(default=None, ge=0),
+    limit: int = Query(default=24, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> list[Hamster]:
+    """Return hamsters filtered by optional query parameters.
+
+    Results are ordered by most-recently created first. Pair with the
+    ``GET /hamsters/count`` endpoint for total-row pagination.
+    """
+    stmt = _apply_filters(
+        select(Hamster),
+        q=q,
+        species=species,
+        gender=gender,
+        location=location,
+        max_fee_cents=max_fee_cents,
+    )
+    stmt = stmt.order_by(Hamster.created_at.desc()).limit(limit).offset(offset)
+    return list(db.execute(stmt).scalars().all())
 
 
 @router.get("/{hamster_id}", response_model=HamsterRead)
