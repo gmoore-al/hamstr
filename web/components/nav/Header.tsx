@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { getLenis } from "@/components/motion/SmoothScroll";
 import { StaggerHoverLink } from "@/components/nav/StaggerHoverLink";
+import { trackEvent } from "@/lib/analytics";
 
 /** Hash-target on the home page that the Browse pill scrolls to. */
 const BROWSE_HASH = "#hamsters";
@@ -37,6 +38,9 @@ export function Header() {
    *   Lenis to the hash once the destination page is mounted.
    */
   const handleBrowseClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    trackEvent("nav_browse", {
+      mode: pathname === "/" ? "in_page_scroll" : "navigate",
+    });
     if (pathname !== "/") return;
     const target = document.querySelector(BROWSE_HASH);
     if (!target) return;
@@ -151,7 +155,12 @@ export function Header() {
         {/* Brand wordmark — solid ink "hamstr" PNG with a true alpha
             channel, so it sits cleanly on any section colour. The mark
             recolors to cream on dark sections via the CSS filter below. */}
-        <Link href="/" className="flex items-center" aria-label="Hamstr home">
+        <Link
+          href="/"
+          className="flex items-center"
+          aria-label="Hamstr home"
+          onClick={() => trackEvent("nav_home")}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/hamstr-wordmark.png"
@@ -178,7 +187,11 @@ export function Header() {
         >
           {[
             { href: `/${BROWSE_HASH}`, label: "Browse", onClick: handleBrowseClick },
-            { href: "/map", label: "View Map" },
+            {
+              href: "/map",
+              label: "View Map",
+              onClick: () => trackEvent("nav_map"),
+            },
           ].map((l) => (
             <span
               key={l.href + l.label}
@@ -203,6 +216,7 @@ export function Header() {
             background: dark ? "var(--mustard)" : "var(--ink)",
             color: dark ? "var(--ink)" : "var(--cream)",
           }}
+          onClick={() => trackEvent("nav_rehome")}
         >
           Rehome
         </Link>

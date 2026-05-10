@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet.markercluster";
 import { Hamster, SPECIES, formatAge, formatFee } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { LeafletCSS } from "./leaflet-css";
 import { hamsterClusterIcon, hamsterPinIcon } from "./icons";
 
@@ -62,6 +63,20 @@ export function HamsterMap({ hamsters }: { hamsters: Hamster[] }) {
       map.remove();
       mapRef.current = null;
     };
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.(
+        "a.hamstr-popup-link",
+      ) as HTMLAnchorElement | null;
+      if (!a) return;
+      const id = a.dataset.hamsterId;
+      if (id) trackEvent("map_listing_click", { hamster_id: Number(id) });
+    };
+
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
   }, []);
 
   useEffect(() => {
@@ -127,7 +142,7 @@ function buildPopup(h: Hamster & { latitude: number; longitude: number }): strin
     ? "hamstr-popup-fee hamstr-popup-fee--free"
     : "hamstr-popup-fee";
   return `
-    <a class="hamstr-popup-link" href="/hamsters/${h.id}">
+    <a class="hamstr-popup-link" data-hamster-id="${h.id}" href="/hamsters/${h.id}">
       <div class="hamstr-popup-photo-wrap">${photo}</div>
       <div class="hamstr-popup-body">
         <p class="hamstr-popup-eyebrow">${escapeText(eyebrow)}</p>

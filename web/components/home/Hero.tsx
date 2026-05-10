@@ -5,6 +5,7 @@ import { RevealChars } from "@/components/motion/RevealChars";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { CursorHamster } from "@/components/CursorHamster";
 import { HamstrWordmark } from "@/components/HamstrWordmark";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Hero — Tesoro pattern: center-aligned, small intro stack at top, HUGE
@@ -57,8 +58,17 @@ export function Hero() {
         </RevealUp>
 
         <RevealUp delay={0.55} className="flex flex-wrap items-center justify-center gap-3">
-          <PillCTA href="/#hamsters">meet the hamsters</PillCTA>
-          <PillCTA href="/rehome" variant="cream">
+          <PillCTA
+            href="/#hamsters"
+            onClick={() => trackEvent("hero_cta_meet_hamsters")}
+          >
+            meet the hamsters
+          </PillCTA>
+          <PillCTA
+            href="/rehome"
+            variant="cream"
+            onClick={() => trackEvent("hero_cta_rehome")}
+          >
             rehome yours
           </PillCTA>
         </RevealUp>

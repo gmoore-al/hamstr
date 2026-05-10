@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MouseEvent } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { BrowseFilters } from "./BrowseControls";
 
 /**
@@ -58,6 +59,21 @@ export function Pagination({
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (e.button !== 0) return;
     e.preventDefault();
+    let toPage = 1;
+    try {
+      const u = new URL(href, window.location.origin);
+      const p = u.searchParams.get("page");
+      toPage =
+        p && Number.isFinite(Number(p)) ? Math.max(1, Math.floor(Number(p))) : 1;
+    } catch {
+      toPage = 1;
+    }
+    const direction = toPage > page ? "next" : "prev";
+    trackEvent("pagination", {
+      from_page: page,
+      to_page: toPage,
+      direction,
+    });
     router.push(href, { scroll: false });
   }
 

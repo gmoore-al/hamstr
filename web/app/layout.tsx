@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import "./globals.css";
 
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { AnalyticsPageViews } from "@/components/analytics/AnalyticsPageViews";
 import { Header } from "@/components/nav/Header";
 import { PageTransition } from "@/components/transition/PageTransition";
 import { HamstrFooter } from "@/components/footer/HamstrFooter";
@@ -72,6 +73,7 @@ export default function RootLayout({
             prerender. The fallback is null because the curtain is purely
             decorative — there's no UX to fall back to. */}
         <Suspense fallback={null}>
+          <AnalyticsPageViews />
           <PageTransition />
         </Suspense>
         <main className="w-full">{children}</main>

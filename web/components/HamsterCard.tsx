@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Hamster, SPECIES, formatAge, formatFee } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { paletteFor } from "@/lib/palettes";
 import { Squircle } from "@/components/ui/Squircle";
 
@@ -17,6 +20,12 @@ export function HamsterCard({ hamster }: { hamster: Hamster }) {
   return (
     <Link
       href={`/hamsters/${hamster.id}`}
+      onClick={() =>
+        trackEvent("listing_click", {
+          hamster_id: hamster.id,
+          surface: "browse_grid",
+        })
+      }
       className="group relative flex h-full flex-col gap-5 rounded-[1.75rem] p-6 transition-transform duration-300 hover:-translate-y-1 sm:p-7"
       style={{ background: palette.bg, color: palette.fg }}
     >

@@ -25,6 +25,9 @@ class Settings(BaseSettings):
         "postgresql+psycopg://hamstr_app:hamstr_app@localhost:5432/hamstr_marketplace"
     )
     cors_allow_origins: str = "http://localhost:3000"
+    # Optional regex for ``Access-Control-Allow-Origin`` (e.g. all
+    # ``*.vercel.app`` preview URLs). Env: ``CORS_ALLOW_ORIGIN_REGEX``.
+    cors_allow_origin_regex: str | None = None
     api_host: str = "127.0.0.1"
     api_port: int = 8000
 

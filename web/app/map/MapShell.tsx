@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Hamster } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Client wrapper that lazy-loads the Leaflet map without SSR.
@@ -36,6 +38,13 @@ export function MapShell({
   hamsters: Hamster[];
   error: string | null;
 }) {
+  useEffect(() => {
+    trackEvent("map_view", {
+      listing_count: hamsters.length,
+      has_fetch_error: Boolean(error),
+    });
+  }, [hamsters.length, error]);
+
   return (
     <section
       // `data-tone` lets the sticky header read the section colour and
@@ -74,6 +83,7 @@ export function MapShell({
           <div className="flex gap-2">
             <Link
               href="/"
+              onClick={() => trackEvent("map_browse_grid_click")}
               className="rounded-full px-4 py-2 text-xs font-bold tracking-wide"
               style={{
                 background: "transparent",

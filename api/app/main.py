@@ -16,13 +16,16 @@ app = FastAPI(
     description="A gentle marketplace for rehoming hamsters with care.",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+_cors_kwargs: dict[str, object] = {
+    "allow_origins": settings.cors_origins_list,
+    "allow_credentials": False,
+    "allow_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "allow_headers": ["*"],
+}
+if settings.cors_allow_origin_regex and settings.cors_allow_origin_regex.strip():
+    _cors_kwargs["allow_origin_regex"] = settings.cors_allow_origin_regex.strip()
+
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 app.include_router(hamsters.router)
 

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   GENDERS,
@@ -13,6 +12,7 @@ import { Squircle } from "@/components/ui/Squircle";
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { ContactCurrentHumanToggle } from "./ContactCurrentHumanToggle";
+import { DetailBackToBrowseLink } from "./DetailBackToBrowseLink";
 import { MiniMapBlock } from "./MiniMapBlock";
 
 /**
@@ -79,17 +79,10 @@ export default async function HamsterDetailPage({
         }}
       >
         <RevealUp>
-          <Link
-            href="/#hamsters"
-            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-transform hover:-translate-y-0.5"
-            style={{
-              background: "color-mix(in srgb, currentColor 10%, transparent)",
-              color: palette.fg,
-            }}
-          >
+          <DetailBackToBrowseLink fg={palette.fg}>
             <span aria-hidden>←</span>
             <span>Back to all hamsters</span>
-          </Link>
+          </DetailBackToBrowseLink>
         </RevealUp>
 
         <div className="grid w-full grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-14">
@@ -259,6 +252,7 @@ export default async function HamsterDetailPage({
               <ContactCurrentHumanToggle
                 email={hamster.current_human_email}
                 hamsterName={hamster.name}
+                hamsterId={hamster.id}
               />
             </aside>
           </RevealUp>

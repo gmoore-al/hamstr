@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { GENDERS, Gender, SPECIES, Species } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 export interface BrowseFilters {
   species: Species | "";
@@ -38,6 +39,11 @@ export function BrowseControls({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    trackEvent("filter_apply", {
+      species: values.species || undefined,
+      gender: values.gender || undefined,
+      has_location: Boolean(values.location.trim()),
+    });
     const params = new URLSearchParams();
     if (values.species) params.set("species", values.species);
     if (values.gender) params.set("gender", values.gender);
@@ -52,6 +58,7 @@ export function BrowseControls({
   }
 
   function onReset() {
+    trackEvent("filter_clear");
     setValues({ species: "", gender: "", location: "" });
     router.push("/#hamsters", { scroll: false });
   }
