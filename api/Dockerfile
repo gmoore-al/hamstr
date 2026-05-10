@@ -1,4 +1,5 @@
-# Context: ``api/`` (directory containing this Dockerfile on Railway).
+# Build context: **repository root** (root ``railway.toml`` uses
+# ``dockerfilePath = "api/Dockerfile"``). Paths must be ``api/...``.
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app
@@ -8,10 +9,10 @@ ENV PYTHONUNBUFFERED=1
 
 RUN pip install --no-cache-dir --upgrade pip
 
-COPY requirements.txt .
+COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY api/ .
 
 EXPOSE 8000
 
