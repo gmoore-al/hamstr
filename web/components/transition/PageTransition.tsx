@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { gsap } from "@/lib/gsap";
 import { getLenis } from "@/components/motion/SmoothScroll";
 
 /**
  * Tesoro-style "curtain" page transition: a full-bleed colored panel
- * sweeps in from below, an octagon-clipped logo pops in, then on route
+ * sweeps in from below, a squircle-clipped logo pops in, then on route
  * change the panel sweeps off the top.
  *
  * While the curtain is up, the hamster face runs an ambient loop
@@ -22,6 +22,12 @@ import { getLenis } from "@/components/motion/SmoothScroll";
 export function PageTransition() {
   const router = useRouter();
   const pathname = usePathname();
+  // Search params are part of "where we are" — pagination links and filter
+  // submissions only change the query string, so we need to lift the curtain
+  // on those navigations too. Without this, ?page=2 etc. would leave the
+  // curtain stuck because pathname-only deps never re-fire.
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? "";
   const curtainRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const hammyRef = useRef<HTMLImageElement>(null);
@@ -32,6 +38,11 @@ export function PageTransition() {
   // curtain-in hold, so it can skip the extra intro hold and wave off
   // immediately.
   const arrivedFromNavRef = useRef(false);
+  // True until the very first reveal effect runs. Lets us distinguish
+  // "first paint" (which should play the soft intro) from search-only
+  // soft navigations like pagination and filter submits (which should
+  // not flash the curtain at all).
+  const initialMountRef = useRef(true);
 
   // Start the cute ambient loop on the hamster face. Idempotent:
   // calling twice will not stack loops.
@@ -88,18 +99,73 @@ export function PageTransition() {
       return;
     }
 
+    const fromNav = arrivedFromNavRef.current;
+    arrivedFromNavRef.current = false;
+    const isInitialMount = initialMountRef.current;
+    initialMountRef.current = false;
+
+    // Soft, search-only navigations (pagination, filter submits) do NOT
+    // come through the click interceptor — they bypass it because the
+    // pathname is unchanged — and we don't want them to play the curtain
+    // at all. Otherwise pagination flashes the full-screen teal panel
+    // and force-scrolls back to the hash, which feels jarring against
+    // what should be a quick in-place card swap. Only the initial mount
+    // and real route changes (fromNav) get the curtain treatment.
+    if (!fromNav && !isInitialMount) {
+      gsap.set(curtain, { autoAlpha: 0 });
+      navigatingRef.current = false;
+      return;
+    }
+
     // If we just navigated, the curtain is already covering — wipe it off.
     // If this is initial load, do a soft reveal so the first paint is intentional.
     const tl = gsap.timeline({
       onComplete: () => {
         navigatingRef.current = false;
-        getLenis()?.start();
+        const lenis = getLenis();
+        lenis?.start();
         gsap.set(curtain, { yPercent: 0, autoAlpha: 0 });
+
+        // If the destination URL carries a hash (e.g. `/#hamsters`
+        // from the nav's Browse pill) smooth-scroll Lenis to it now
+        // that the page is fully visible. Native hash anchors would
+        // jump instantly and bypass Lenis; this gives the same calm
+        // glide as in-page scroll.
+        if (typeof window !== "undefined") {
+          const hash = window.location.hash;
+          if (hash && hash !== "#") {
+            // Wait two animation frames so the destination DOM has
+            // had a chance to paint and Lenis has ticked at least
+            // once after `start()`. A small `setTimeout` further
+            // guards against React still flushing layout effects
+            // for newly-mounted client subtrees (HamsterGrid, etc.).
+            // `force: true` overrides Lenis' "is user scrolling"
+            // guard in case Next.js's automatic scroll restoration
+            // also queued a scroll on this same tick.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setTimeout(() => {
+                  const target = document.querySelector(hash);
+                  if (!target) return;
+                  if (lenis) {
+                    lenis.scrollTo(target as HTMLElement, {
+                      offset: -72,
+                      duration: 1.1,
+                      force: true,
+                    });
+                  } else {
+                    (target as HTMLElement).scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                }, 80);
+              });
+            });
+          }
+        }
       },
     });
-
-    const fromNav = arrivedFromNavRef.current;
-    arrivedFromNavRef.current = false;
 
     // Belt: make absolutely sure we land at the top of the new page
     // before the curtain lifts. `playCurtainIn` already scrolled to 0
@@ -152,7 +218,7 @@ export function PageTransition() {
       tl.kill();
       stopHammyAmbient();
     };
-  }, [pathname]);
+  }, [pathname, search]);
 
   // Intercept internal link clicks, play curtain in, then navigate.
   useEffect(() => {
@@ -190,6 +256,10 @@ export function PageTransition() {
         url.search === window.location.search
       )
         return;
+      // Same-pathname, search-only navigations (pagination, filter submits)
+      // are in-place data swaps, not real page transitions — skip the
+      // curtain so they feel snappy. Next.js will handle the soft nav.
+      if (url.pathname === window.location.pathname) return;
 
       // Capture-phase listener fires before next/link's onClick, so we
       // stop propagation to prevent Link from also calling router.push
@@ -268,9 +338,19 @@ export function PageTransition() {
         position: "fixed",
         inset: 0,
         background: "var(--teal)",
-        zIndex: 100,
+        // Leaflet stacks its panes from 200 (tile) up to ~1000 (controls),
+        // and the cursor hamster sits at 50, so the curtain has to clear
+        // every one of them or routes that contain a map render *over*
+        // the curtain during navigation.
+        zIndex: 10000,
         opacity: 0,
-        pointerEvents: "none",
+        // Initial render is invisible (opacity: 0). GSAP toggles
+        // `visibility: hidden` via `autoAlpha`, which also stops the
+        // curtain catching clicks while it's hidden — so we can leave
+        // pointer-events on and have it correctly block interaction
+        // with the underlying page (Leaflet drag/zoom, link hovers,
+        // etc.) while it's visible.
+        pointerEvents: "auto",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -278,7 +358,7 @@ export function PageTransition() {
     >
       <div
         ref={logoRef}
-        className="clip-octagon"
+        className="clip-squircle"
         style={{
           width: "min(40vw, 220px)",
           aspectRatio: "1 / 1",

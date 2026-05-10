@@ -16,6 +16,7 @@ export function PillCTA({
   children: ReactNode;
   href?: string;
   icon?: ReactNode;
+  /** Fires before navigation when `href` is set. */
   onClick?: () => void;
   variant?: "dark" | "cream" | "teal";
   className?: string;
@@ -65,7 +66,12 @@ export function PillCTA({
 
   if (href) {
     return (
-      <Link href={href} className={`pill-cta ${className}`} style={variantStyle}>
+      <Link
+        href={href}
+        className={`pill-cta ${className}`}
+        style={variantStyle}
+        onClick={onClick}
+      >
         {content}
       </Link>
     );

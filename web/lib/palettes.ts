@@ -6,7 +6,7 @@ import type { ConnectedPillTone } from "@/components/ui/ConnectedPills";
  * Each palette is a deep-on-pale combo from the Hamstr design system:
  *   bg     — pale section/card background
  *   fg     — deep text colour that reads on `bg`
- *   accent — a saturated colour from the same family (used for octagons, chips)
+ *   accent — a saturated colour from the same family (used for squircles, chips)
  *   chip   / chipFg — high-contrast pill used for prices/CTAs on the surface
  *   pills  — a two-tone pair for the <ConnectedPills> eyebrow so it
  *            always reads against this palette's `bg`

@@ -44,7 +44,7 @@ const STEPS = [
 /**
  * Section D — explainer. Tesoro pattern: pale mustard background, center
  * heading with connected pills, then four large coloured tiles each
- * carrying its own colour family. Each tile uses an octagon-clipped
+ * carrying its own colour family. Each tile uses a squircle-clipped
  * stage number as its anchor.
  */
 export function HowItWorks() {

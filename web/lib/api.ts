@@ -42,6 +42,8 @@ export interface Hamster {
   includes: string;
   adoption_fee_cents: number;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   photo_url: string;
   current_human_name: string;
   current_human_email: string;
@@ -59,6 +61,8 @@ export interface HamsterCreate {
   includes: string;
   adoption_fee_cents: number;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   photo_url: string;
   current_human_name: string;
   current_human_email: string;
@@ -70,10 +74,17 @@ export interface HamsterFilters {
   gender?: Gender;
   location?: string;
   max_fee_cents?: number;
+  limit?: number;
+  offset?: number;
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+function apiBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+  return raw.replace(/\/+$/, "");
+}
+
+const API_BASE = apiBaseUrl();
 
 /**
  * Build a query string from a plain object, dropping undefined/empty values.
@@ -107,6 +118,41 @@ export async function fetchHamsters(
     ...init,
   });
   return handle<Hamster[]>(res);
+}
+
+/** Filters accepted by the map endpoint (no text/location/pagination). */
+export interface MapFilters {
+  species?: Species;
+  gender?: Gender;
+  max_fee_cents?: number;
+}
+
+/**
+ * Fetch hamsters that have coordinates, for the clustered map view.
+ * The API caps this at 2000 rows, so 200 listings come back in one round trip.
+ */
+export async function fetchHamstersForMap(
+  filters: MapFilters = {},
+  init?: RequestInit,
+): Promise<Hamster[]> {
+  const res = await fetch(
+    `${API_BASE}/hamsters/map${toQuery({ ...filters, limit: 500 })}`,
+    { cache: "no-store", ...init },
+  );
+  return handle<Hamster[]>(res);
+}
+
+/** Fetch the total number of hamsters matching the given filters. */
+export async function fetchHamsterCount(
+  filters: Omit<HamsterFilters, "limit" | "offset"> = {},
+  init?: RequestInit,
+): Promise<number> {
+  const res = await fetch(
+    `${API_BASE}/hamsters/count${toQuery({ ...filters })}`,
+    { cache: "no-store", ...init },
+  );
+  const body = await handle<{ total: number }>(res);
+  return body.total;
 }
 
 /** Fetch a single hamster by id. */

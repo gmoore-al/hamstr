@@ -4,6 +4,8 @@ import { PillCTA } from "@/components/ui/PillCTA";
 import { RevealChars } from "@/components/motion/RevealChars";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { CursorHamster } from "@/components/CursorHamster";
+import { HamstrWordmark } from "@/components/HamstrWordmark";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Hero — Tesoro pattern: center-aligned, small intro stack at top, HUGE
@@ -56,8 +58,17 @@ export function Hero() {
         </RevealUp>
 
         <RevealUp delay={0.55} className="flex flex-wrap items-center justify-center gap-3">
-          <PillCTA href="/#hamsters">meet the hamsters</PillCTA>
-          <PillCTA href="/rehome" variant="cream">
+          <PillCTA
+            href="/#hamsters"
+            onClick={() => trackEvent("hero_cta_meet_hamsters")}
+          >
+            meet the hamsters
+          </PillCTA>
+          <PillCTA
+            href="/rehome"
+            variant="cream"
+            onClick={() => trackEvent("hero_cta_rehome")}
+          >
             rehome yours
           </PillCTA>
         </RevealUp>
@@ -65,24 +76,24 @@ export function Hero() {
 
       {/* The HUGE wordmark — full-bleed across the bottom. Tesoro
           signature: brand wordmark scales with viewport so it dominates
-          the hero edge-to-edge. The `gradient-flow` class paints a
-          wide multi-stop brand gradient onto the letters and slowly
-          drifts it horizontally for a living, breathing feel.
+          the hero edge-to-edge. The cropped SVG letterforms are masked
+          and the brand warm-flow gradient drifts through them for a
+          living, breathing feel.
 
           The next section (FounderLetter / peach) is pulled up with a
           negative margin to cover the bottom 15% of this wordmark. */}
-      <h2
-        className="display-xxl gradient-flow text-center leading-none"
+      <HamstrWordmark
+        variant="gradient"
         style={{
-          fontSize: "clamp(5rem, 24vw, 22rem)",
-          letterSpacing: "-0.06em",
-          // Calmer, more hypnotic sweep — still visibly flowing but
-          // doesn't compete with the hero copy for attention.
+          // Aspect-locked SVG fills the full section width so the
+          // wordmark scales with the viewport just like the old
+          // text-rendered version (clamp(5rem, 24vw, 22rem) ≈ this).
+          width: "100%",
+          // Calmer, more hypnotic sweep — doesn't compete with the
+          // hero copy for attention.
           ["--gradient-flow-duration" as string]: "24s",
         }}
-      >
-        hamstr
-      </h2>
+      />
     </section>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   GENDERS,
@@ -9,15 +8,17 @@ import {
   formatFee,
 } from "@/lib/api";
 import { paletteFor } from "@/lib/palettes";
-import { Octagon } from "@/components/ui/Octagon";
+import { Squircle } from "@/components/ui/Squircle";
 import { ConnectedPills } from "@/components/ui/ConnectedPills";
 import { RevealUp } from "@/components/motion/RevealUp";
 import { ContactCurrentHumanToggle } from "./ContactCurrentHumanToggle";
+import { DetailBackToBrowseLink } from "./DetailBackToBrowseLink";
+import { MiniMapBlock } from "./MiniMapBlock";
 
 /**
  * Hamster detail — Tesoro pattern: full-bleed coloured section that
  * reuses the same deterministic palette as the hamster's grid card,
- * so clicking a card feels like walking into the card. Large octagon
+ * so clicking a card feels like walking into the card. Large squircle
  * photo on a saturated accent, display-lg name, pill-style spec chips,
  * and matching-tint story / comes-with / contact blocks.
  *
@@ -78,21 +79,14 @@ export default async function HamsterDetailPage({
         }}
       >
         <RevealUp>
-          <Link
-            href="/#hamsters"
-            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-transform hover:-translate-y-0.5"
-            style={{
-              background: "color-mix(in srgb, currentColor 10%, transparent)",
-              color: palette.fg,
-            }}
-          >
+          <DetailBackToBrowseLink fg={palette.fg}>
             <span aria-hidden>←</span>
             <span>Back to all hamsters</span>
-          </Link>
+          </DetailBackToBrowseLink>
         </RevealUp>
 
         <div className="grid w-full grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-14">
-          {/* LEFT — octagon photo on an accent pad */}
+          {/* LEFT — squircle photo on an accent pad */}
           <RevealUp className="flex justify-center lg:justify-start">
             <div
               className="rounded-[2.25rem] p-6 sm:p-8"
@@ -102,7 +96,7 @@ export default async function HamsterDetailPage({
                 maxWidth: 520,
               }}
             >
-              <Octagon
+              <Squircle
                 className="aspect-square w-full"
                 style={{ background: palette.accent }}
               >
@@ -124,7 +118,7 @@ export default async function HamsterDetailPage({
                     🐹
                   </div>
                 )}
-              </Octagon>
+              </Squircle>
             </div>
           </RevealUp>
 
@@ -258,6 +252,7 @@ export default async function HamsterDetailPage({
               <ContactCurrentHumanToggle
                 email={hamster.current_human_email}
                 hamsterName={hamster.name}
+                hamsterId={hamster.id}
               />
             </aside>
           </RevealUp>
@@ -280,6 +275,40 @@ export default async function HamsterDetailPage({
                 <p className="body-main whitespace-pre-wrap">
                   {hamster.includes}
                 </p>
+              </article>
+            </RevealUp>
+          ) : null}
+
+          {hamster.latitude !== null && hamster.longitude !== null ? (
+            <RevealUp delay={0.35} className="lg:col-span-3">
+              <article
+                className="flex flex-col gap-4 rounded-[1.75rem] p-7 sm:p-9"
+                style={{
+                  background:
+                    "color-mix(in srgb, currentColor 8%, transparent)",
+                }}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2
+                    className="text-xs font-bold uppercase tracking-[0.18em]"
+                    style={{ opacity: 0.65 }}
+                  >
+                    Where
+                  </h2>
+                  <p className="text-sm font-semibold">
+                    {hamster.location || "—"}
+                  </p>
+                </div>
+                <div
+                  className="overflow-hidden rounded-2xl"
+                  style={{ height: 280, background: "var(--cream)" }}
+                >
+                  <MiniMapBlock
+                    latitude={hamster.latitude}
+                    longitude={hamster.longitude}
+                    label={hamster.location || hamster.name}
+                  />
+                </div>
               </article>
             </RevealUp>
           ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Reveals the current human's email on click so scrapers get a little
@@ -11,9 +12,11 @@ import { useState } from "react";
 export function ContactCurrentHumanToggle({
   email,
   hamsterName,
+  hamsterId,
 }: {
   email: string;
   hamsterName: string;
+  hamsterId: number;
 }) {
   const [revealed, setRevealed] = useState(false);
 
@@ -21,7 +24,10 @@ export function ContactCurrentHumanToggle({
     return (
       <button
         type="button"
-        onClick={() => setRevealed(true)}
+        onClick={() => {
+          trackEvent("contact_intent_click", { hamster_id: hamsterId });
+          setRevealed(true);
+        }}
         className="pill-cta mt-2 w-full justify-between"
       >
         <span>I&rsquo;d like to meet {hamsterName}</span>

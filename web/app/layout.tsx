@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import "./globals.css";
 
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { AnalyticsPageViews } from "@/components/analytics/AnalyticsPageViews";
 import { Header } from "@/components/nav/Header";
 import { PageTransition } from "@/components/transition/PageTransition";
 import { HamstrFooter } from "@/components/footer/HamstrFooter";
@@ -66,7 +68,14 @@ export default function RootLayout({
         </Script>
         <SmoothScroll />
         <Header />
-        <PageTransition />
+        {/* PageTransition reads useSearchParams; wrap in Suspense so search-only
+            navigations (?page=2 etc.) don't opt the whole route out of static
+            prerender. The fallback is null because the curtain is purely
+            decorative — there's no UX to fall back to. */}
+        <Suspense fallback={null}>
+          <AnalyticsPageViews />
+          <PageTransition />
+        </Suspense>
         <main className="w-full">{children}</main>
         <HamstrFooter />
       </body>
