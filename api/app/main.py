@@ -38,8 +38,8 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/health/db", tags=["meta"])
-def health_db() -> JSONResponse | dict[str, object]:
+@app.get("/health/db", tags=["meta"], response_model=None)
+def health_db():
     """Smoke test Postgres (Supabase): TCP + optional ``hamsters`` table."""
     from sqlalchemy import text
 
