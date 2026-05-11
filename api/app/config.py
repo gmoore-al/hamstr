@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,6 +37,19 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_psycopg_driver(cls, v: object) -> object:
+        """Supabase (and others) often emit ``postgresql://`` URIs. This API
+        uses Psycopg 3 only, which SQLAlchemy registers as ``postgresql+psycopg``.
+        """
+        if not isinstance(v, str):
+            return v
+        s = v.strip()
+        if s.startswith("postgresql://") and not s.startswith("postgresql+psycopg"):
+            return "postgresql+psycopg://" + s.removeprefix("postgresql://")
+        return s
 
     @property
     def cors_origins_list(self) -> list[str]:
